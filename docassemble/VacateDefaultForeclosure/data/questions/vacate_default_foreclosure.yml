@@ -1,0 +1,1400 @@
+metadata:
+  title: Vacate a default judgment of foreclosure
+  short title: Delay a default foreclosure
+  comment: This program makes the forms to ask the court to vacate a default judgment of foreclosure.
+  authors:
+    - Vivian McNaughton
+    - Matt Newsted
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ALToolbox:phone-number-validation.yml
+  - docassemble.ILAO:ilao-interview-framework.yml
+  - docassemble.ILAO:shared-basic-questions.yml
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True, complete_attribute=['complete'])
+  - users[i].lawyer: ALIndividual
+  - users[i].hand_delivery_address: ALAddress
+  - signing_users: ALPeopleList.using(there_are_any=True)
+  - other_parties: ALPeopleList.using(there_are_any=True)
+  - other_parties[i].lawyer: ALIndividual
+  - other_parties[i].hand_delivery_address: ALAddress
+  - foreclosed_property: ALAddress
+  - users[i].mail: ALAddress
+  - other_parties[i].mail: ALAddress
+  - users[i].carrier: ALAddress
+  - other_parties[i].carrier: ALAddress                      
+  - delivery_parties: ALPeopleList.using(there_are_any=True)
+  - delivery_parties[i].lawyer: ALIndividual
+  - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
+---
+code: |
+  ilao_easy_form_title = "Vacate a default judgment of foreclosure"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/vacate-default-judgment-foreclosure"
+  github_user = 'IllinoisLegalAidOnline'
+  github_repo_name = 'docassemble-VacateDefaultForeclosure'
+  allowed_courts = ['Circuit']
+  user_ask_role = 'defendant'
+  al_form_type = 'existing_case'
+  form_name = "Motion to Vacate Default Judgment of Foreclosure"
+---
+# Road map
+sections:
+  - section_intro: Start
+  - section_property_details: Property details
+  - section_case_info: Case info
+  - section_vacate_reasons: Reasons to vacate
+  - section_delivery: Delivery and filing details
+  #- section_about_you: About you
+  #- section_filing_information: Filing information
+  - section_download: Download  
+---
+# interview order block
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  sees_nav_bar
+  snapshot_start
+  how_to_use
+  set_progress(5)
+  whats_next
+  accept_terms
+  default_info
+  if not in_foreclosure:
+    no_foreclosure_kickout
+  if not entered_against_user:
+    not_entered_kickout
+
+  nav.set_section('section_property_details')
+  if foreclosed_property.state != "IL":
+    out_of_state_kickout
+  live_in_property
+  home_type
+  is_borrower
+
+  nav.set_section('section_case_info')
+  judge_sign_date
+  users.gather()
+  other_parties.gather()
+  trial_court_index
+  trial_court.address.county
+  case_number
+  been_in_court
+
+  nav.set_section('section_vacate_reasons')
+  if not present_at_hearing:
+    if absence_reasons.all_false():
+      no_reason_kickout
+  if present_at_hearing:
+    if order_reasons.all_false():
+      no_reason_kickout
+  if mod_pending:
+    hamp_loan
+    forward_not_permitted  
+    include_mod_contract
+  if short_sale:
+    include_short_contract
+  if users.number_gathered() > 1:
+    agreement_intro   
+    for index, party in enumerate(users):
+      if index > 0:
+        if party.agree:
+          party.need_signature
+          party.address.address
+          party.phone_number
+        else:
+          party.need_to_send
+
+  nav.set_section('section_delivery')
+  delivery_intro
+  for person in delivery_parties:
+    #The agree variable is only used for a delivery_parties object in the review screen shared by users and delivery_parties. 
+    person.agree = False
+    if person.is_represented == True:
+      person.lawyer.name.first
+    person.address.address
+    if person.knows_delivery_method:
+      person.mail_delivery
+      person.delivery_date
+  set_progress(80)
+  hand_delivery_info  
+  users[0].has_email_address 
+  attach_docs
+  e_signature
+  nav.set_section('section_download')
+  forms_assembling
+---
+#users gather loop
+code: |
+  users[i].name.first
+  if i == 0:
+    users[i].address.address
+  users[i].complete = True
+---
+#other parties gather loop
+code: |
+  other_parties[i].name.first
+
+  other_parties[i].complete = True
+---
+code: |
+  stuff_to_snapshot = {
+  	'start_time': str(current_datetime().format_datetime()),
+  	'started_interview': True, 
+  	}
+
+  try:
+    stuff_to_snapshot['ip_address'] = device(ip=True)
+  except:
+    pass
+
+  stuff_to_snapshot['zip'] = showifdef('users[0].address.zip')
+
+  stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+  
+  store_variables_snapshot(
+  	data=stuff_to_snapshot, persistent=True
+  	)
+  snapshot_interview_state = True
+---
+code: |
+  snapshot_interview_state
+  snapshot_start = True  
+---
+code: |
+  reconsider('snapshot_interview_state')
+  snapshot_forms = True
+---
+id: welcome
+question: |
+  Vacate a default judgment of foreclosure
+subquestion: |
+  Welcome to Illinois Legal Aid Online's **Vacate a default judgment of foreclosure** Easy Form.
+
+  If a court issued a default judgment putting your property in foreclosure, you can ask the court to vacate by filing a *Motion to Vacate Default Judgment of Foreclosure*. This program helps you complete the motion, as well as other forms you may need.
+  
+  To learn more, read ILAO's article about [**vacating a default judgment in a foreclosure case**](https://www.illinoislegalaid.org/legal-information/vacating-default-judgment-foreclosure-case).
+field: sees_nav_bar
+---
+id: instructions
+continue button field: how_to_use
+question: |
+  Instructions
+subquestion: |
+  To use this program you will need: 
+
+  * The Judgment of Foreclosure entered against you,
+  * The Order of Default,
+  * Names and addresses of the other parties,
+  * Names and addresses of the other parties' lawyers, and
+  * A reason why you missed your court hearing or why the judge entered a default judgment.
+
+  You can find information about dates, other parties, and addresses in the court papers you have about this case. 
+
+  Set aside 10 to 20 minutes to finish this program. You can log in and save your work to return to later. 
+ 
+  ${ collapse_template(help_example) }  
+
+  Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
+---
+template: help_example
+subject: |
+  **You can click sections like this to show more information.**
+content: |  
+  This is an example of help. Click again to hide.
+---
+id: whats next
+continue button field: whats_next
+question: |
+  After you finish this program
+subquestion: |
+  After you download your *Motion to Vacate Default Judgment of Foreclosure* forms, you must file them with the court. This program does not file your forms for you.
+  
+  You will also need to send copies of your forms to the other parties in the case.
+
+   **Note:** If you have not filed an Appearance in the foreclosure case, you may need to do that before asking the court to vacate the judgment. You can use ILAO's [**Appearance Easy Form**](https://www.illinoislegalaid.org/legal-information/appearance) to make an appearance to file with the court.
+
+  ${collapse_template(what_fees)}
+  
+  You can also download instructions at the end of this program. The instructions can guide you through filing your forms and going to court. 
+---
+template: what_fees
+subject: |
+  **Will I need to pay any court fees?**
+content: |
+  If you have already paid to file an appearance in the foreclosure case, you do not need to pay additional court costs to file this motion. You also do not need to pay if you have alrady gotten a fee waiver.
+
+  If you still need to file an Appearance with the court, you can use ILAO's [**Appearance Easy Form**](https://www.illinoislegalaid.org/legal-information/appearance).
+
+  If you would like to ask for a fee waiver, you can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/legal-information/fee-waiver).
+---
+id: default info
+continue button field: default_info
+question: |
+  Default judgment information
+subquestion: |
+  When you are sued, you have to tell the court if you want to participate in the case. If you don't respond or go to court, the judge can decide the case against you. This is called being "in default." The order against you is called a **default judgment**.
+  
+  This program will help you make a Motion to Vacate Default Judgment of Foreclosure that asks the judge to undo the default judgment so you can participate in the court case. You must file the motion within 30 days of the judgment. If you file after 30 days, it becomes much harder to undo the judgment.
+
+  To learn more, read ILAO's article about [**vacating a default judgment in a foreclosure case**](https://www.illinoislegalaid.org/legal-information/vacating-default-judgment-foreclosure-case).
+---
+id: in foreclosure check
+question: |
+  Are you the defendant in a foreclosure case?
+fields:
+  - no label: in_foreclosure
+    datatype: yesnoradio
+---
+id: no foreclosure kickout
+event: no_foreclosure_kickout
+question: |
+  Sorry
+subquestion: |
+  You cannot use this program if you are not involved in a foreclosure case right now.
+
+  If you are worried you may be foreclosed on in the future, read ILAO's article on [**avoiding mortgage foreclosure**](https://www.illinoislegalaid.org/legal-information/avoiding-mortgage-foreclosure-0).
+
+   If you made a mistake, you can click the **Back** button or **Restart** the interview.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: judgment entered check
+question: |
+  Was a Judgment of Foreclosure entered against you?
+subquestion: |
+  A Judgment of Foreclosure is a court document ordering the sale of a foreclosed property. It also says how much you owe the bank or mortgage company.
+
+  If the judge has scheduled the sale of your foreclosed property, the court has entered a Judgment of Foreclosure against you.
+fields:
+   - no label: entered_against_user
+     datatype: yesnoradio
+---
+id: no judgment kickout
+event: not_entered_kickout
+question: |
+    Sorry
+subquestion: |
+  You cannot use this program unless you received a Judgment of Foreclosure.
+
+  If your lender is trying to foreclose on you but the court has not yet made a judgment, you may be able to reply. You can file a *Mortgage Foreclosure Appearance and Answer* to respond to a mortgage foreclosure complaint. Use  [**ILAO's Easy Form**](https://www.illinoislegalaid.org/legal-information/respond-mortgage-foreclosure-complaint) to make the forms you need.
+  
+  To learn more about what you can do about a foreclosure, read ILAO's article on [**responding to a mortgage foreclosure case**](https://www.illinoislegalaid.org/legal-information/responding-mortgage-foreclosure-case).
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: foreclosed property address
+question: |
+  What is the address of the foreclosed property?
+fields:
+  - Street address: foreclosed_property.address
+    address autocomplete: True
+  - Address line 2: foreclosed_property.unit
+    required: False
+  - City: foreclosed_property.city
+  - State: foreclosed_property.state
+    code: |
+      states_list() 
+  - ZIP code: foreclosed_property.zip
+---
+id: out of state kickout
+event: out_of_state_kickout
+question: |
+  Sorry
+subquestion: |
+  You can only use this program for foreclosures in Illinois.
+
+  If your property is not in Illinois, use [**the Legal Services Corporation's legal help page**](https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help) to find a legal aid organization near you.
+
+  If you made a mistake, you can click the **Back** button or **Restart** the interview.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: live in property
+question: |
+  Do you live in the foreclosed property as your main home?
+fields:
+  - no label: live_in_property
+    datatype: yesnoradio
+---
+id: home type units
+question: |
+  What type of building is the foreclosed property?
+field: home_type
+choices:
+  - A single family home: single
+  - A building with one to four residential units: few_units
+  - Other: many_units
+---
+id: user is borrower
+question: |
+  Are you the borrower of a mortgage loan for the foreclosed property?
+fields:
+   - no label: is_borrower
+     datatype: yesnoradio
+---
+id: judge sign date
+question: |
+  When did the judge sign the Judgment of Foreclosure?
+fields:
+  - Date: judge_sign_date
+    datatype: date
+    max: ${ today()}
+---
+id: user address
+question: |
+  What is your mailing address?
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
+---
+id: any other users
+question: |
+    Is anyone else on your side of the foreclosure case?
+subquestion: |
+  % if len(users.elements) > 1:  
+  So far you have told us about ${users.full_names()}.
+  % else:
+  If there are other defendants besides you, click **Yes**.
+  % endif
+fields:
+  - no label: users.there_is_another
+    datatype: yesnoradio
+---
+template: long_name_help
+subject: |
+  **What if I need more space?**
+content: |
+  If the person has a long name like "Jane Smith, Director of Housing," select **Business or organization**. You can then enter the full name and title.
+---
+sets:
+  - other_parties[i].name.first
+  - other_parties[i].name.last
+  - other_parties[i].name.middle
+  - other_parties[i].name.suffix
+id: names of opposing parties
+question: |
+  Name of ${ ordinal(i) } **plaintiff** in this case
+subquestion: |
+    ${ collapse_template(long_name_help) }
+fields:
+  - code: |
+      other_parties[i].name_fields(person_or_business='unsure')
+---
+id: other parties there is another
+question: |
+  Are there any other plaintiffs in this case?
+subquestion: |
+  % if len(other_parties.elements) >= 1:  
+  So far you have told us about ${other_parties.full_names()}.
+  % endif
+fields:
+  - no label: other_parties.there_is_another
+    datatype: yesnoradio
+---
+id: county
+continue button field: county
+question: |
+  In which county was this case filed?
+subquestion: |
+  ${ collapse_template(county_lookup_help) }  
+fields:
+  - no label: trial_court_index
+    code: |
+      court_county_lookup()
+---
+code: |
+  def court_county_lookup():
+    all_court_counties = court_list._load_courts()['address_county'].items()
+    filtered_courts = [(-1, "Cook")]
+    for court in all_court_counties:
+      if court[1] != "Cook":
+        filtered_courts.append(court)
+    return sorted( filtered_courts, key=lambda y: y[1])
+---
+depends on:
+  - trial_court_index
+code: |
+  if trial_court_index == "-1":
+    trial_court = court_list.as_court('trial_court', 15)
+  else:
+    trial_court = court_list.as_court('trial_court', trial_court_index)
+---
+template: county_lookup_help
+subject: |
+  **How do I look up the county?**
+content: |  
+  You can use this [**City-to-County Finder**](https://www.statsamerica.org/CityCountyFinder/) to find the county.
+---
+id: case number
+question: |
+  What is the case number?
+subquestion: |
+  The **{circuit court clerk}** gives each case a number when it is filed.
+
+  The case number is in the caption near the top of the first page of the court forms.
+fields:
+  - Case number: case_number
+---
+id: been in court
+question: |
+  Have you been to court and seen a judge about this case?
+subquestion: |
+  Select **Yes** if you went to court and saw a judge about this foreclosure case.
+fields:
+  - no label: been_in_court
+    datatype: yesnoradio
+---
+id: present at hearing
+question: |
+  Were you at the hearing when the judge ordered the foreclosure of your property?
+fields:
+  - no label: present_at_hearing
+    datatype: yesnoradio
+---
+id: absence reasons
+question: |
+  Why were you not in court when the judge ordered the foreclosure of your property? 
+subquestion: |
+  Select all that apply.
+fields:
+  - Reasons: absence_reasons
+    datatype: checkboxes
+    none of the above: True
+    choices:
+      - I was late to court.: late
+      - I did not make it to court.: make   
+      - I did not get notice of the court hearing.: notice
+        help: |
+          Notice is the way one party in a lawsuit tells the other parties about papers they file and court dates.
+
+          If you did not get notice of the court hearing, it means you did not learn about the court date until after it happened.
+      - Other: other
+  - Why were you late to court?: late_reason
+    input type: area
+    maxlength: 200
+    js show if:
+      val('absence_reasons') === "late"
+  - Why didn't you make it to court?: make_reason
+    input type: area
+    maxlength: 200
+    js show if:
+      val('absence_reasons') === "make"
+  - Why didn't you get notice of the court hearing?: notice_reason
+    input type: area
+    maxlength: 200
+    help: |
+      Notice is the way one party in a lawsuit tells the other parties about papers they file and court dates.
+    js show if:
+      val('absence_reasons') === "notice"
+  - What is your reason for missing the court hearing?: missed_other_reason
+    input type: area
+    maxlength: 150
+    js show if:
+      val('absence_reasons') === "other"
+---
+id: order reasons
+question: |
+  Why did the judge enter a default judgment?
+subquestion: |
+  Select all that apply.
+fields:
+  - Reasons: order_reasons
+    datatype: checkboxes
+    none of the above: True
+    choices:
+      - The judge did not give me extra time to answer.: time
+      - Other: other
+  - Other reason: at_other_reason
+    input type: area
+    rows: 2
+    maxlength: 200
+    js show if:
+      val("order_reasons['other']") === true
+---
+id: no reason kickout
+event: no_reason_kickout
+question: |
+  Sorry
+subquestion: |
+  % if present_at_hearing:
+  You must include a reason why the judge entered a default judgment in your motion.
+  % else:
+  You must include a reason why you missed the court hearing in your motion.
+   % endif
+
+  If you do not know what to do, you may want help from a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  If you made a mistake, you can click the **Back** button or **Restart** the interview.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: modification pending
+question: |
+  Do you have a loan modification application pending?
+fields:
+  - no label: mod_pending
+    datatype: yesnomaybe
+---
+id: hamp
+question: |
+  Is your pending application for a HAMP loan modification?
+subquestion: |
+  HAMP stands for Home Affordable Modification Program.
+
+  HAMP was a program run from 2009 to 2016 that offered homeowners who are at risk of foreclosure reduced monthly mortgage payments. 
+  
+  If you applied for a loan modification after 2016, you can click **No** here.
+fields:
+  - no label: hamp_loan
+    datatype: yesnomaybe
+---
+id: modification case not permitted
+question: |
+  Does the loan modification offer say your mortgage company will not go forward with the foreclosure if you accept the offer?
+subquestion: |
+  If a mortgage company says they will not go forward with the foreclosure, it means that litigation should be paused and no orders other than a **[continuance*]] should be ordered by the court
+fields:
+  - no label: forward_not_permitted  
+    datatype: yesnomaybe
+terms:
+  continuance: |
+    A continuance is when a judge gives more time to prepare before or during a trial.
+---
+id: include modification contract
+continue button field: include_mod_contract
+question: |
+  Attach the loan modification contract
+subquestion: |
+  When you file your forms, you should include a copy of:
+  
+  * Your loan modification application, 
+  * Any loan modification offers you received, and 
+  * Any proof that you accepted the offer or made your payments.
+---
+id: short sale contract
+question: |
+  Do you have a contract to sell the property as a short sale?
+subquestion: |
+  A short sale is when you sell your property for less than you owe your lender. If someone offers to buy your home in a short sale, your lender can choose whether to take their offer.
+
+  If you short sell your property, all the money will go to your lender. You may want to ask a lawyer to make sure you know if you still owe on the loan after the short sale. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+fields:
+  - no label: short_sale
+    datatype: yesnomaybe
+---
+id: include short sale contract
+continue button field: include_short_contract
+question: |
+  Attach the sale contract
+subquestion: | 
+  Include a copy of the sale contract when you file your forms.
+---
+id: agreement intro
+continue button field: agreement_intro
+question: |
+    Other defendants
+subquestion: |
+    If the other defendants agree with your reasons to delay the sale, they can join your *Motion to Stay Foreclosure Sale*. This program can add their information to your forms.
+
+    **Note:** Any defendants who join you will need to sign the forms before you file them.
+---
+id: user agree
+question: |
+  Does ${users[i].name.full(middle='full')} want to sign the motion with you?
+subquestion: | 
+  You should only click **Yes** if ${users[i].name.full(middle='full')} fully agrees with you and the reasons you want to delay the foreclosure sale.
+
+  If ${users[i].name.full(middle='full')} has any other responses or different reasons they want to delay the foreclosure sale, click **No**.
+fields:
+  - no label: users[i].agree
+    datatype: yesnoradio
+---
+id: about user signatures
+continue button field: users[i].need_signature
+question: |
+  ${users[i].name.full(middle='full')} needs to sign
+subquestion: |
+  ${users[i].name.full(middle='full')} will need to sign the forms before they can be filed.
+---
+id: need to send
+continue button field: users[i].need_to_send
+question: |
+  Giving a copy to ${users[i].name.full(middle='full')}
+subquestion: |
+  You will need to provide a copy of your forms to ${users[i].name.full(middle='full')}.
+  
+  More instructions on how to do this will be provided later.
+---
+id: users delivery party address
+sets:
+  - users[i].address.address
+  - users[i].address.city
+  - users[i].address.zip
+generic object: ALIndividual
+question: |
+  % if showifdef("users[i].agree"):
+  What is ${ users[i].name.full(middle="full") }'s address?
+  % elif users[i].is_represented:
+  What is ${ users[i].lawyer.name.full(middle="full") }'s address?
+  % else:
+  What is ${ users[i].name.full(middle="full") }'s address?
+  % endif
+fields:
+  - Street address: users[i].address.address
+    address autocomplete: True
+  - Address line 2: users[i].address.unit
+    required: False
+  - City: users[i].address.city
+  - State: users[i].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[i].address.zip
+---
+id: user address
+question: |
+  What is your mailing address?
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
+---
+sets:
+  - users[0].has_email_address
+id: your contact information
+generic object: ALIndividual
+question: |
+  What is your contact information?
+subquestion: |
+  The court or other parties might need to contact you about this case.
+
+  **This information will appear on your court forms.**
+  
+  If you do not want to list a phone number on your forms, leave it blank.
+
+  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important information about your case.
+
+  ${ collapse_template(contact_info_help) }  
+fields:  
+  - Phone number: users[0].phone_number
+    datatype: al_international_phone
+    required: False
+  - label: |
+      Do you have an email address?
+    field: users[0].has_email_address      
+    datatype: yesnoradio
+  - note: |
+      This email address will appear on your court forms. Be sure to check 
+      this email daily, otherwise you may miss important information about 
+      your case.
+    show if: users[0].has_email_address      
+  - Email address: users[0].email    
+    datatype: email
+    show if: 
+      variable: users[0].has_email_address
+      is: True
+---
+template: contact_info_help
+subject: |
+  **What if I don't want to list my email address?**
+content: |  
+  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  
+  To make a new email account try one of these email services:
+  
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+reconsider: True
+code: |
+  delivery_parties = ALPeopleList("delivery_parties", elements = other_parties)
+  for index, user in enumerate(users):
+    if index > 0:
+      if not user.agree:
+        delivery_parties.append(user)
+---
+id: delivery intro
+continue button field: delivery_intro
+question: |
+  Send your forms to all other parties
+subquestion: |
+  You will need to deliver a copy of your forms to these other parties: ${delivery_parties.full_names()}.
+
+  You must send a copy of your forms to each of them.
+
+  If someone in the case has a lawyer, you only need to send it to their lawyer.
+---
+generic object: ALIndividual
+id: has lawyer
+question: |
+  Does ${ x.name.full(middle="full") } have a lawyer in this case?
+field: x.is_represented
+choices:
+  - Yes: True
+  - No: False
+  - I don't know.: null 
+# note: null will be None in review screen
+---
+id: add lawyer
+generic object: ALIndividual
+question: |
+  Who is  ${ x.name.full(middle="full") }'s lawyer?
+fields:
+  - First name: x.lawyer.name.first
+  - Middle name: x.lawyer.name.middle
+    required: False
+  - Last name: x.lawyer.name.last
+  - Suffix: x.lawyer.name.suffix
+    code: |
+      name_suffix()
+    required: False   
+---
+id: delivery party address
+sets:
+  - x.address.address
+  - x.address.city
+  - x.address.zip
+generic object: ALIndividual
+question: |
+  % if showifdef("x.agree"):
+  What is ${ x.name.full(middle="full") }'s address?
+  % elif x.is_represented:
+  What is ${ x.lawyer.name.full(middle="full") }'s address?
+  % else:
+  What is ${ x.name.full(middle="full") }'s address?
+  % endif
+fields:
+  - Street address: x.address.address
+    address autocomplete: True
+  - Address line 2: x.address.unit
+    required: False
+  - City: x.address.city
+  - State: x.address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: x.address.zip
+---
+id: knows delivery method
+generic object: ALIndividual
+question: |
+  % if x.is_represented:
+  Do you know **how** and **when** you will send your forms to ${ x.lawyer.name.full(middle="full") }?
+  % else:
+  Do you know **how** and **when** you will send your forms to ${ x.name.full(middle="full") }?
+  % endif
+subquestion: |
+  ${ collapse_template(delivery_method_help) }  
+  
+  The Proof of Delivery section is where you explain how you will send a copy of your forms to the other parties in the case.
+
+  For best results, complete the Proof of Delivery section and send the forms today.
+
+  If you do not know this now, you can add it to the Proof of Delivery section of your forms later.
+field: x.knows_delivery_method
+choices:
+  - Yes: True
+  - No. I do not know this now. I will add it to my forms later.: False
+---
+template: delivery_method_help
+subject: |
+  **What are my delivery options?**
+content: |  
+  You can deliver the forms by:
+  
+  * The court's **{e-filing system}**,
+  * Email,
+  * US mail or a delivery company (like UPS or FedEx), or
+  * Hand delivery to the party, the party's family member over 13 at their residence, the party's lawyer, or their lawyer's office.
+
+  If the other party listed an email address on the court documents, you must send the forms to them by email or through the e-filing system. You may use US mail or a delivery company, or hand delivery if you or the other party **does not** have an email address.
+  
+  If you are in a prison or jail, you can deliver by mail.
+terms:
+  - e-filing system: |
+      The court's e-filing system could be any approved electronic filing service provider (EFSP).
+---
+generic object: ALIndividual
+id: party delivery method
+question: |
+  % if x.is_represented:
+  How will you send your forms to ${ x.lawyer.name.full(middle="full") }?
+  % else:
+  How will you send your forms to ${ x.name.full(middle="full") }?
+  % endif
+subquestion: |  
+  If the other party listed an email address on the court documents, you must send the forms to them by email or through the e-filing system. You may use US mail or a delivery company, or hand delivery if you or the other party **does not** have an email address. If you are in a prison or jail, you can deliver by mail.
+
+  For best results, complete the Proof of Delivery section and send the forms today.
+
+  **Note:** If you do not know this now, be sure to add it to the Proof of Delivery section of your forms later.
+
+  ${ collapse_template(efiling_help) }
+fields:
+  - E-filing system: x.efm_delivery
+    datatype: yesnowide
+    help: |
+      The court's e-filing system could be any approved electronic filing service provider (EFSP).
+  - Email: x.email_delivery
+    datatype: yesnowide
+  - Email address (for e-filing system or email delivery): x.delivery_email
+    datatype: email
+    js show if: 
+      val("x.efm_delivery") == true || val("x.email_delivery") == true
+    required: False
+  - US mail: x.mail_delivery
+    datatype: yesnowide                                                   
+  - Address or intersection of post office or mailbox: x.mail.address
+    address autocomplete: False
+    show if: 
+      variable: x.mail_delivery
+      is: True
+    required: False
+  - City: x.mail.city
+    show if: 
+      variable: x.mail_delivery
+      is: True
+    required: False
+  - State: x.mail.state
+    code: |
+      states_list()    
+    show if: 
+      variable: x.mail_delivery
+      is: True
+    required: False
+  - Delivery company (like UPS or FedEx): x.by_third_party
+    datatype: yesnowide
+  - Address or intersection of delivery company: x.carrier.address
+    address autocomplete: False
+    show if: 
+      variable: x.by_third_party
+      is: True
+    required: False
+  - City of third-party carrier: x.carrier.city
+    show if: 
+      variable: x.by_third_party
+      is: True
+    required: False
+  - State of third-party carrier: x.carrier.state
+    code: |
+      states_list()    
+    show if: 
+      variable: x.by_third_party
+      is: True
+    required: False
+  - Hand delivery: x.hand_delivery
+    datatype: yesnowide
+    help: |
+      You can only deliver to the party, the party's family member over 13 at their residence, the party's lawyer, or their lawyer's office.
+  - Street address: x.hand_delivery_address.address
+    address autocomplete: True
+    show if: 
+      variable: x.hand_delivery
+      is: True
+    required: False
+  - Address line 2: x.hand_delivery_address.unit
+    show if: 
+      variable: x.hand_delivery
+      is: True
+    required: False
+  - City: x.hand_delivery_address.city
+    show if: 
+      variable: x.hand_delivery
+      is: True
+    required: False
+  - State: x.hand_delivery_address.state
+    code: |
+      states_list()
+    default: IL      
+    show if: 
+      variable: x.hand_delivery
+      is: True
+    required: False
+  - ZIP code: x.hand_delivery_address.zip
+    show if: 
+      variable: x.hand_delivery
+      is: True
+    required: False
+  - By mail from a prison or jail: x.jail_delivery
+    datatype: yesnowide
+  - Name of prison or jail: x.delivery_jail_name
+    maxlength: 40
+    show if: 
+      variable: x.jail_delivery
+      is: True
+    required: False
+---
+template: efiling_help
+subject: |
+  **What if I need help?**
+content: |  
+  If you need help delivering by email or using the e-filing service provider, you can visit a [**Legal Self-Help Center**](https://www.illinoislegalaid.org/get-legal-help/lshc-directory) or you can call or text [**Illinois Court Help**](https://www.ilcourthelp.gov) at 833-411-1121.
+---
+id: delivery time
+generic object: ALIndividual
+question: |
+  % if x.is_represented:
+  When will you send your forms to ${ x.lawyer.name.full(middle="full") }?
+  % else:
+  When will you send your forms to ${ x.name.full(middle="full") }?
+  % endif
+subquestion: |
+  For best results, complete the Proof of Delivery section and send the forms today.
+
+  **Note:** If you do not know this now, be sure to add it to the Proof of Delivery section of your forms later.
+fields:
+  - Date: x.delivery_date
+    datatype: date
+    required: False
+    max: ${ today().plus(years=1) }
+  - Time: x.delivery_time
+    datatype: time
+    required: False
+validation code: |
+  if (not showifdef('x.delivery_date')):
+    x.knows_delivery_date = False
+  else:
+    x.knows_delivery_date = True
+  if (not showifdef('x.delivery_time')):
+    x.knows_delivery_time = False
+  else:
+    x.knows_delivery_time = True
+
+---
+id: hand delivery info
+continue button field: hand_delivery_info
+question: |
+  Check your Proof of Delivery
+subquestion: |
+  **Don't forget!** Make sure you review and complete the Proof of Delivery section of your forms. 
+  
+  [FILE proof_of_delivery_snip_2024.png, 100%, Proof of Delivery section of forms]
+
+  **Instructions when delivering your forms by hand:**
+
+  * If a party in your case does not have a lawyer, you can hand-deliver the forms to them or to a family member who is 13 or older at their home.
+  * If they do have a lawyer, you can hand-deliver the forms to the lawyer or to the lawyer's office.
+---
+id: other user phone
+question: |
+  What is ${users[i].name.full(middle='full')}'s phone number?
+subquestion: |
+  If you do not know this, you can leave this blank.
+fields:  
+  - Phone number: users[i].phone_number
+    datatype: al_international_phone
+    required: False
+---
+id: attach supporting documents
+continue button field: attach_docs
+question: |
+  Attach supporting documents
+subquestion: |
+  % if which_evidence != "none":
+  You should attach ${which_evidence} to your motion. Make sure to include those and any other documents that explain why the default judgment of foreclosure should be vacated when you file your forms. 
+  % else:
+  You can attach documents to your motion that help explain why the default judgment of foreclosure should be vacated.
+  % endif
+  
+  Be sure to attach copies of all documents to the forms you serve to other parties.
+
+  **Note:** If you are e-filing, you can upload other documents as attachments during the e-filing process. If you are paper filing, bring copies of the documents to the clerk's office so you can attach them to the complaint.
+---
+depends on:
+  - mod_pending
+  - short_sale
+code: |
+  if mod_pending and short_sale:
+    which_evidence = "the loan modification contract and the sale contract"
+  elif mod_pending:
+    which_evidence = "the loan modification contract"
+  elif short_sale:
+    which_evidence = "the sale contract"
+  else:
+    which_evidence = "none"
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |  
+  Your forms are ready. View and download your forms below. Click **Make changes** to fix any mistakes.
+
+  This program does not file your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+  
+  ${ al_user_bundle.download_list_html() }
+
+  &nbsp;
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  **Note:** This program does not file your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  
+  Thank you for using ILAO Easy Forms!
+under: |
+  % if not user_logged_in():
+  [${fa_icon("sign-in-alt", color="#0079d0", size="sm")} **Sign-in**](${url_of('login', next=interview_url())}) or [**create**](${url_of('register', next=interview_url())}) an ILAO Easy Form account to save your progress (optional).
+  % endif 
+
+  &nbsp;
+  ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Vacate a default judgment of foreclosure forms
+content: |
+  Your forms are attached.
+  
+  Thanks for using ILAO Easy Forms!
+  
+  [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
+---
+reconsider: True
+code: |
+  instructions.enabled = True
+  motion.enabled = True
+
+
+---
+objects:
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
+  - motion: ALDocument.using(title="Motion to Vacate Default Judgment of Foreclosure", filename="motion.pdf", has_addendum=False)
+
+---
+objects:
+  - motion_bundle: ALDocumentBundle.using(elements=[motion, additional_signatures_bundle, additional_proof_bundle], filename="delay_a_foreclosure_sale.pdf", title="Motion to Vacate Default Judgment of Foreclosure")
+
+---
+objects:
+  - additional_signatures_bundle: ALDocumentBundle.using(elements=[], title="Additional Defendant Signatures", filename="additional_signatures.pdf", has_addendum=False)
+  - additional_proof_bundle: ALDocumentBundle.using(elements=[], title="Additional Proof of Delivery", filename="additional_proof.pdf", has_addendum=False)
+---
+attachment:
+  variable name: instructions[i]
+  name: instructions
+  filename: instructions
+  skip undefined: True
+  editable: False
+  pdf template file: instructions_vacate_foreclosure.pdf
+  fields:
+    - "fake": ${ "" }
+---
+attachment:
+  variable name: motion[i]
+  name: motion
+  filename: motion
+  skip undefined: True
+  editable: False
+  pdf template file: motion_vacate_foreclosure.pdf
+  fields:
+    - "case_number_1": ${ case_number }
+    - "case_number_2": ${ case_number }
+    - "case_number_3": ${ case_number }
+    - "case_number_4": ${ case_number }
+    - "case_number_5": ${ case_number }
+    - "county": ${trial_court.address.county.upper()}
+    - "plaintiffs": ${other_parties.full_names()}
+    - "all_defendants": ${users.full_names()}
+    - "signing_defendants": ${signing_users.full_names()}
+    - "property_street_address": ${foreclosed_property.line_one(bare=True)}
+    - "property_csz_address": ${foreclosed_property.line_two()}
+    - "borrowers_true": ${is_borrower}
+    - "borrowers_false": ${False if is_borrower else True}
+    - "main_home_false": ${False if live_in_property else True}
+    - "main_home_true": ${live_in_property}
+    - "single_or_sub_four_true": ${False if home_type == "many_units" else True}
+    - "single_or_sub_four_false": ${True if home_type == "many_units" else False}
+    - "before_judge_false": ${False if been_in_court else True}
+    - "before_judge_true": ${been_in_court}
+    - "judge_sign_date": ${judge_sign_date}
+    - "missed_hearing": ${False if present_at_hearing else False }
+    - "at_hearing": ${present_at_hearing}
+    - "late_to_court": ${ True if present_at_hearing == False and absence_reasons['late'] == True else False}
+    - "late_reason": ${late_reason if present_at_hearing == False and absence_reasons['late'] == True else ""}
+    - "did_not_make_it": ${ True if present_at_hearing == False and absence_reasons['make'] == True else False}
+    - "no_make_reason": ${make_reason if present_at_hearing == False and absence_reasons['make'] == True else ""}
+    - "no_notice": ${ True if present_at_hearing == False and absence_reasons['notice'] == True else ""}
+    - "no_notice_reason": ${notice_reason if present_at_hearing == False and absence_reasons['notice'] == True else ""}
+    - "missed_other_check": ${ True if present_at_hearing == False and absence_reasons['other'] == True else False}
+    - "missed_other_reason": ${missed_other_reason if present_at_hearing == False and absence_reasons['other'] == True else ""}
+    - "no_extra_time": ${True if present_at_hearing and order_reasons['time'] else False}
+    - "at_hearing_other_check": ${True if present_at_hearing and order_reasons['other'] else False}
+    - "at_hearing_other_text": ${at_other_reason if present_at_hearing and order_reasons['other'] else ""}
+    - "defendant_name_1": ${users[0].name.full(middle='full')}
+    - "defendant_signature_1": ${users[0].name.full(middle='full') if e_signature else ""}
+    - "defendant_street_1": ${users[0].address.line_one(bare=True)}
+    - "defendant_csz_1": ${users[0].address.line_two()}
+    - "defendant_phone_1": ${phone_number_formatted(users[0].phone_number)}
+    - "defendant_name_2": ${signing_users[1].name.full(middle='full')}
+    - "defendant_signature_2": ${""}
+    - "defendant_street_2": ${signing_users[1].address.line_one(bare=True)}
+    - "defendant_csz_2": ${signing_users[1].address.line_two()}
+    - "defendant_phone_2": ${phone_number_formatted(signing_users[1].phone_number)}
+    - "defendant_name_3": ${signing_users[2].name.full(middle='full')}
+    - "defendant_signature_3": ${""}
+    - "defendant_street_3": ${signing_users[2].address.line_one(bare=True)}
+    - "defendant_csz_3": ${signing_users[2].address.line_two()}
+    - "defendant_phone_3": ${phone_number_formatted(signing_users[2].phone_number)}
+    - "mod_pending_true": ${mod_pending}
+    - "mod_pending_false": ${True if mod_pending == False else False}
+    - "mod_pending_idk": ${True if mod_pending is None else False}
+    - "hamp_idk": ${True if hamp_loan is None else False}
+    - "hamp_false": ${True if hamp_loan == False else False}
+    - "hamp_true": ${hamp_loan}
+    - "not_permitted_true": ${True if short_sale and mod_pending else False}
+    - "not_permitted_false": ${ True if short_sale == False and mod_pending else False}
+    - "not_permitted_idk": ${True if short_sale is None and mod_pending else False}
+    - "sale_contract_idk": ${True if short_sale is None else False}
+    - "sale_contract_false": ${True if short_sale == False else False}
+    - "sale_contract_true": ${short_sale}
+    - "additional_signatures": ${True if signing_users.number_gathered() > 3 else False}
+    - "delivery_party_name_1": |
+        % if delivery_parties[0].is_represented:
+        ${delivery_parties[0].lawyer.name.full(middle='full')} (lawyer for ${delivery_parties[0].name.full(middle='full')})
+        % else:
+        ${delivery_parties[0].name.full(middle='full')}
+        % endif
+    - "delivery_party_address_1": ${delivery_parties[0].address.on_one_line(bare=True)}
+    - "delivery_email_1": ${delivery_parties[0].delivery_email}
+    - "post_office_1": |
+        % if delivery_parties[0].knows_delivery_method and delivery_parties[0].mail_delivery:
+        % if delivery_parties[0].mail.address != "" and delivery_parties[0].mail.city != "" and delivery_parties[0].mail.state != "":
+        ${delivery_parties[0].mail.address }, ${delivery_parties[0].mail.city}, ${ state_name(delivery_parties[0].mail.state) }
+        % elif delivery_parties[0].mail.address != "" and delivery_parties[0].mail.city != "":
+        ${delivery_parties[0].mail.address }, ${delivery_parties[0].mail.city}
+        % elif delivery_parties[0].mail.address != "" and delivery_parties[0].mail.state != "":
+        ${delivery_parties[0].mail.address }, ${ state_name(delivery_parties[0].mail.state) }
+        % elif delivery_parties[0].mail.city != "" and delivery_parties[0].mail.state != "":
+        ${delivery_parties[0].mail.city}, ${ state_name(delivery_parties[0].mail.state) }
+        % elif delivery_parties[0].mail.address != "":
+        ${delivery_parties[0].mail.address}
+        % elif delivery_parties[0].mail.city != "":
+        ${delivery_parties[0].mail.state}
+        % else:
+        ${state_name(delivery_parties[0].mail.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "carrier_info_1": |
+        % if delivery_parties[0].knows_delivery_method and delivery_parties[0].by_third_party:
+        % if delivery_parties[0].carrier.address != "" and delivery_parties[0].carrier.city != "" and delivery_parties[0].carrier.state != "":
+        ${delivery_parties[0].carrier.address }, ${delivery_parties[0].carrier.city}, ${ state_name(delivery_parties[0].carrier.state) }
+        % elif delivery_parties[0].carrier.address != "" and delivery_parties[0].carrier.city != "":
+        ${delivery_parties[0].carrier.address }, ${delivery_parties[0].carrier.city}
+        % elif delivery_parties[0].carrier.address != "" and delivery_parties[0].carrier.state != "":
+        ${delivery_parties[0].carrier.address }, ${ state_name(delivery_parties[0].carrier.state) }
+        % elif delivery_parties[0].carrier.city != "" and delivery_parties[0].carrier.state != "":
+        ${delivery_parties[0].carrier.city}, ${ state_name(delivery_parties[0].carrier.state) }
+        % elif delivery_parties[0].carrier.address != "":
+        ${delivery_parties[0].carrier.address}
+        % elif delivery_parties[0].carrier.city != "":
+        ${delivery_parties[0].carrier.state}
+        % else:
+        ${state_name(delivery_parties[0].carrier.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "prison_name_1": ${delivery_parties[0].delivery_jail_name if delivery_parties[0].jail_delivery and delivery_parties[0].knows_delivery_method else ""}
+    - "delivery_date_1": ${delivery_parties[0].delivery_date if delivery_parties[0].knows_delivery_method else ""}
+    - "delivery_time_1": ${format_time(delivery_parties[0].delivery_time, format='h:mm') if delivery_parties[0].knows_delivery_method and delivery_parties[0].delivery_time != "" else ""}
+    - "hand_delivery_1": ${delivery_parties[0].hand_delivery if delivery_parties[0].knows_delivery_method else False}
+    - "mail_delivery_1": |
+        % if delivery_parties[0].knows_delivery_method and delivery_parties[0].mail_delivery:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "carrier_delivery_1": |
+        % if delivery_parties[0].knows_delivery_method and delivery_parties[0].by_third_party:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "efm_1": ${delivery_parties[0].efm_delivery if delivery_parties[0].knows_delivery_method else False}
+    - "email_delivery_1": ${delivery_parties[0].email_delivery if delivery_parties[0].knows_delivery_method else False}
+    - "prison_delivery_1": ${delivery_parties[0].jail_delivery if delivery_parties[0].knows_delivery_method else False}
+    - "delivery_am_1": ${True if format_time(delivery_parties[0].delivery_time, format='a') == "AM" and delivery_parties[0].knows_delivery_method else False}
+    - "delivery_pm_1": ${True if format_time(delivery_parties[0].delivery_time, format='a') == "PM" and delivery_parties[0].knows_delivery_method else False}
+    - "delivery_party_name_2": |
+        % if delivery_parties[1].is_represented:
+        ${delivery_parties[1].lawyer.name.full(middle='full')} (lawyer for ${delivery_parties[1].name.full(middle='full')})
+        % else:
+        ${delivery_parties[1].name.full(middle='full')}
+        % endif
+    - "delivery_party_address_2": ${delivery_parties[1].address.on_one_line(bare=True)}
+    - "delivery_email_2": ${delivery_parties[1].delivery_email}
+    - "post_office_2": |
+        % if delivery_parties[1].knows_delivery_method and delivery_parties[1].mail_delivery:
+        % if delivery_parties[1].mail.address != "" and delivery_parties[1].mail.city != "" and delivery_parties[1].mail.state != "":
+        ${delivery_parties[1].mail.address }, ${delivery_parties[1].mail.city}, ${ state_name(delivery_parties[1].mail.state) }
+        % elif delivery_parties[1].mail.address != "" and delivery_parties[1].mail.city != "":
+        ${delivery_parties[1].mail.address }, ${delivery_parties[1].mail.city}
+        % elif delivery_parties[1].mail.address != "" and delivery_parties[1].mail.state != "":
+        ${delivery_parties[1].mail.address }, ${ state_name(delivery_parties[1].mail.state) }
+        % elif delivery_parties[1].mail.city != "" and delivery_parties[1].mail.state != "":
+        ${delivery_parties[1].mail.city}, ${ state_name(delivery_parties[1].mail.state) }
+        % elif delivery_parties[1].mail.address != "":
+        ${delivery_parties[1].mail.address}
+        % elif delivery_parties[1].mail.city != "":
+        ${delivery_parties[1].mail.state}
+        % else:
+        ${state_name(delivery_parties[1].mail.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "carrier_info_2": |
+        % if delivery_parties[1].knows_delivery_method and delivery_parties[1].by_third_party:
+        % if delivery_parties[1].carrier.address != "" and delivery_parties[1].carrier.city != "" and delivery_parties[1].carrier.state != "":
+        ${delivery_parties[1].carrier.address }, ${delivery_parties[1].carrier.city}, ${ state_name(delivery_parties[1].carrier.state) }
+        % elif delivery_parties[1].carrier.address != "" and delivery_parties[1].carrier.city != "":
+        ${delivery_parties[1].carrier.address }, ${delivery_parties[1].carrier.city}
+        % elif delivery_parties[1].carrier.address != "" and delivery_parties[1].carrier.state != "":
+        ${delivery_parties[1].carrier.address }, ${ state_name(delivery_parties[1].carrier.state) }
+        % elif delivery_parties[1].carrier.city != "" and delivery_parties[1].carrier.state != "":
+        ${delivery_parties[1].carrier.city}, ${ state_name(delivery_parties[1].carrier.state) }
+        % elif delivery_parties[1].carrier.address != "":
+        ${delivery_parties[1].carrier.address}
+        % elif delivery_parties[1].carrier.city != "":
+        ${delivery_parties[1].carrier.state}
+        % else:
+        ${state_name(delivery_parties[1].carrier.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "prison_name_2": ${delivery_parties[1].delivery_jail_name if delivery_parties[1].jail_delivery and delivery_parties[1].knows_delivery_method else ""}
+    - "delivery_date_2": ${delivery_parties[1].delivery_date if delivery_parties[1].knows_delivery_method else ""}
+    - "delivery_time_2": ${format_time(delivery_parties[1].delivery_time, format='h:mm') if delivery_parties[1].knows_delivery_method and delivery_parties[1].delivery_time != "" else ""}
+    - "hand_delivery_2": ${delivery_parties[1].hand_delivery if delivery_parties[1].knows_delivery_method else False}
+    - "mail_delivery_2": |
+        % if delivery_parties[1].knows_delivery_method and delivery_parties[1].mail_delivery:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "carrier_delivery_2": |
+        % if delivery_parties[1].knows_delivery_method and delivery_parties[1].by_third_party:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "efm_2": ${delivery_parties[1].efm_delivery if delivery_parties[1].knows_delivery_method else False}
+    - "email_delivery_2": ${delivery_parties[1].email_delivery if delivery_parties[1].knows_delivery_method else False}
+    - "prison_delivery_2": ${delivery_parties[1].jail_delivery if delivery_parties[1].knows_delivery_method else False}
+    - "delivery_am_2": ${True if format_time(delivery_parties[1].delivery_time, format='a') == "AM" and delivery_parties[1].knows_delivery_method else False}
+    - "delivery_pm_2": ${True if format_time(delivery_parties[1].delivery_time, format='a') == "PM" and delivery_parties[1].knows_delivery_method else False}
+    - "delivery_party_name_3": |
+        % if delivery_parties[2].is_represented:
+        ${delivery_parties[2].lawyer.name.full(middle='full')} (lawyer for ${delivery_parties[2].name.full(middle='full')})
+        % else:
+        ${delivery_parties[2].name.full(middle='full')}
+        % endif
+    - "delivery_party_address_3": ${delivery_parties[2].address.on_one_line(bare=True)}
+    - "delivery_email_3": ${delivery_parties[2].delivery_email}
+    - "post_office_3": |
+        % if delivery_parties[2].knows_delivery_method and delivery_parties[2].mail_delivery:
+        % if delivery_parties[2].mail.address != "" and delivery_parties[2].mail.city != "" and delivery_parties[2].mail.state != "":
+        ${delivery_parties[2].mail.address }, ${delivery_parties[2].mail.city}, ${ state_name(delivery_parties[2].mail.state) }
+        % elif delivery_parties[2].mail.address != "" and delivery_parties[2].mail.city != "":
+        ${delivery_parties[2].mail.address }, ${delivery_parties[2].mail.city}
+        % elif delivery_parties[2].mail.address != "" and delivery_parties[2].mail.state != "":
+        ${delivery_parties[2].mail.address }, ${ state_name(delivery_parties[2].mail.state) }
+        % elif delivery_parties[2].mail.city != "" and delivery_parties[2].mail.state != "":
+        ${delivery_parties[2].mail.city}, ${ state_name(delivery_parties[2].mail.state) }
+        % elif delivery_parties[2].mail.address != "":
+        ${delivery_parties[2].mail.address}
+        % elif delivery_parties[2].mail.city != "":
+        ${delivery_parties[2].mail.state}
+        % else:
+        ${state_name(delivery_parties[2].mail.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "carrier_info_3": |
+        % if delivery_parties[2].knows_delivery_method and delivery_parties[2].by_third_party:
+        % if delivery_parties[2].carrier.address != "" and delivery_parties[2].carrier.city != "" and delivery_parties[2].carrier.state != "":
+        ${delivery_parties[2].carrier.address }, ${delivery_parties[2].carrier.city}, ${ state_name(delivery_parties[2].carrier.state) }
+        % elif delivery_parties[2].carrier.address != "" and delivery_parties[2].carrier.city != "":
+        ${delivery_parties[2].carrier.address }, ${delivery_parties[2].carrier.city}
+        % elif delivery_parties[2].carrier.address != "" and delivery_parties[2].carrier.state != "":
+        ${delivery_parties[2].carrier.address }, ${ state_name(delivery_parties[2].carrier.state) }
+        % elif delivery_parties[2].carrier.city != "" and delivery_parties[2].carrier.state != "":
+        ${delivery_parties[2].carrier.city}, ${ state_name(delivery_parties[2].carrier.state) }
+        % elif delivery_parties[2].carrier.address != "":
+        ${delivery_parties[2].carrier.address}
+        % elif delivery_parties[2].carrier.city != "":
+        ${delivery_parties[2].carrier.state}
+        % else:
+        ${state_name(delivery_parties[2].carrier.state)}
+        % endif
+        % else:
+        ${ "" }
+        % endif
+    - "prison_name_3": ${delivery_parties[2].delivery_jail_name if delivery_parties[2].jail_delivery and delivery_parties[2].knows_delivery_method else ""}
+    - "delivery_date_3": ${delivery_parties[2].delivery_date if delivery_parties[2].knows_delivery_method else ""}
+    - "delivery_time_3": ${format_time(delivery_parties[2].delivery_time, format='h:mm') if delivery_parties[2].knows_delivery_method and delivery_parties[2].delivery_time != "" else ""}
+    - "hand_delivery_3": ${delivery_parties[2].hand_delivery if delivery_parties[2].knows_delivery_method else False}
+    - "mail_delivery_3": |
+        % if delivery_parties[2].knows_delivery_method and delivery_parties[2].mail_delivery:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "carrier_delivery_3": |
+        % if delivery_parties[2].knows_delivery_method and delivery_parties[2].by_third_party:
+        ${True}
+        % else:
+        ${False}
+        % endif
+    - "efm_3": ${delivery_parties[2].efm_delivery if delivery_parties[2].knows_delivery_method else False}
+    - "email_delivery_3": ${delivery_parties[2].email_delivery if delivery_parties[2].knows_delivery_method else False}
+    - "prison_delivery_3": ${delivery_parties[2].jail_delivery if delivery_parties[2].knows_delivery_method else False}
+    - "delivery_am_3": ${True if format_time(delivery_parties[2].delivery_time, format='a') == "AM" and delivery_parties[2].knows_delivery_method else False}
+    - "delivery_pm_3": ${True if format_time(delivery_parties[2].delivery_time, format='a') == "PM" and delivery_parties[2].knows_delivery_method else False}
+    - "additional_delivery": ${True if delivery_parties.number_gathered() > 3 else False}
+    - "user_street": ${users[0].address.line_one(bare=True)}
+    - "user_signature": ${users[0].name.full(middle='full') if e_signature else ""}
+    - "user_name": ${users[0].name.full(middle='full')}
+    - "user_csz": ${users[0].address.line_two()}
+    - "user_phone": ${phone_number_formatted(users[0].phone_number)}
+---
