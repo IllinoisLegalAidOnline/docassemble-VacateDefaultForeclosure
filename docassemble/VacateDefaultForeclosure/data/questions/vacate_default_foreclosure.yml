@@ -8,7 +8,6 @@ metadata:
 ---
 include:
   - docassemble.AssemblyLine:assembly_line.yml
-  - docassemble.ALToolbox:phone-number-validation.yml
   - docassemble.ILAO:ilao-interview-framework.yml
   - docassemble.ILAO:shared-basic-questions.yml
 ---
@@ -57,10 +56,10 @@ code: |
   sees_nav_bar
   snapshot_start
   how_to_use
+  default_info
   set_progress(5)
   whats_next
   accept_terms
-  default_info
   if not in_foreclosure:
     no_foreclosure_kickout
   if not entered_against_user:
@@ -74,7 +73,8 @@ code: |
   is_borrower
 
   nav.set_section('section_case_info')
-  judge_sign_date
+  if today().minus(days=30) > judge_sign_date:
+    over_thirty_days
   users.gather()
   other_parties.gather()
   trial_court_index
@@ -190,10 +190,15 @@ question: |
 subquestion: |
   Welcome to Illinois Legal Aid Online's **Vacate a default judgment of foreclosure** Easy Form.
 
-  If a court issued a default judgment putting your property in foreclosure, you can ask the court to vacate by filing a *Motion to Vacate Default Judgment of Foreclosure*. This program helps you complete the motion, as well as other forms you may need.
+  If your property is in a foreclosure case, and a court issued a **{default judgment}**, you can ask the court to **{vacate}** it by filing a *Motion to Vacate Default Judgment of Foreclosure*. This program helps you complete the motion, as well as other forms you may need.
   
   To learn more, read ILAO's article about [**vacating a default judgment in a foreclosure case**](https://www.illinoislegalaid.org/legal-information/vacating-default-judgment-foreclosure-case).
 field: sees_nav_bar
+terms:
+  - vacate: |
+      A court **vacates** a judgment when the court undoes or sets aside the judgment.
+  - default judgment: |
+      A **default judgment** is when you lose a case because you didn't file an appearance or show up in court.
 ---
 id: instructions
 continue button field: how_to_use
@@ -227,11 +232,11 @@ continue button field: whats_next
 question: |
   After you finish this program
 subquestion: |
-  After you download your *Motion to Vacate Default Judgment of Foreclosure* forms, you must file them with the court. This program does not file your forms for you.
+  After you download your *Motion to Vacate Default Judgment of Foreclosure* forms, you must file them with the court. This program **does not file** your forms for you.
   
   You will also need to send copies of your forms to the other parties in the case.
 
-   **Note:** If you have not filed an Appearance in the foreclosure case, you may need to do that before asking the court to vacate the judgment. You can use ILAO's [**Appearance Easy Form**](https://www.illinoislegalaid.org/legal-information/appearance) to make an appearance to file with the court.
+   **Note:** If you have not filed an Appearance in the foreclosure case, you may need to do that before asking the court to vacate the judgment. You can use ILAO's [**Respond to a mortgage foreclosure complaint Easy Form**](https://www.illinoislegalaid.org/legal-information/respond-mortgage-foreclosure-complaint) to make a *Mortgage Foreclosure Appearance and Answer* to file with the court.
 
   ${collapse_template(what_fees)}
   
@@ -254,7 +259,7 @@ question: |
 subquestion: |
   When you are sued, you have to tell the court if you want to participate in the case. If you don't respond or go to court, the judge can decide the case against you. This is called being "in default." The order against you is called a **default judgment**.
   
-  This program will help you make a Motion to Vacate Default Judgment of Foreclosure that asks the judge to undo the default judgment so you can participate in the court case. You must file the motion within 30 days of the judgment. If you file after 30 days, it becomes much harder to undo the judgment.
+  This program will help you make a *Motion to Vacate Default Judgment of Foreclosure* that asks the judge to undo the default judgment so you can participate in the court case. You must file the motion within 30 days of the judgment. If you file after 30 days, it becomes much harder to undo the judgment.
 
   To learn more, read ILAO's article about [**vacating a default judgment in a foreclosure case**](https://www.illinoislegalaid.org/legal-information/vacating-default-judgment-foreclosure-case).
 ---
@@ -378,6 +383,17 @@ fields:
     default: IL      
   - ZIP code: users[0].address.zip
 ---
+id: over thirty days
+continue button field: over_thirty_days
+question: |
+  More than thirty days since judgment
+subquestion: |
+  Since more than 30 days have passed since the judge signed the Judgment of Foreclosure, the court will be less likely to grant *Motion to Vacate Default Judgment of Foreclosure*.
+
+  You may want help from a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  You can still file a *Motion to Vacate Default Judgment of Foreclosure* so long as the Plaintiff has not filed a *Motion to Confirm the Foreclosure Sale*.
+---
 id: any other users
 question: |
     Is anyone else on your side of the foreclosure case?
@@ -487,6 +503,8 @@ question: |
   Why were you not in court when the judge ordered the foreclosure of your property? 
 subquestion: |
   Select all that apply.
+
+  The form does not have much room to explain your absence. When you present your Motion to the judge, you will get to say more.
 fields:
   - Reasons: absence_reasons
     datatype: checkboxes
@@ -496,38 +514,47 @@ fields:
       - I did not make it to court.: make   
       - I did not get notice of the court hearing.: notice
         help: |
-          Notice is the way one party in a lawsuit tells the other parties about papers they file and court dates.
+          **Notice** is the way one party in a lawsuit tells the other parties about papers they file and court dates.
 
           If you did not get notice of the court hearing, it means you did not learn about the court date until after it happened.
       - Other: other
   - Why were you late to court?: late_reason
     input type: area
-    maxlength: 150
+    rows: 2
+    maxlength: 100
     js show if:
       val("absence_reasons['late']") === true
   - Why didn't you make it to court?: make_reason
     input type: area
-    maxlength: 150
+    rows: 2
+    maxlength: 100
     js show if:
       val("absence_reasons['make']") === true
   - Why didn't you get notice of the court hearing?: notice_reason
     input type: area
-    maxlength: 150
+    rows: 2
+    maxlength: 100
     help: |
-      Notice is the way one party in a lawsuit tells the other parties about papers they file and court dates.
+      **Notice** is the way one party in a lawsuit tells the other parties about papers they file and court dates.
     js show if:
       val("absence_reasons['notice']") === true
   - What is your reason for missing the court hearing?: missed_other_reason
     input type: area
-    maxlength: 150
+    rows: 2
+    maxlength: 100
     js show if:
       val("absence_reasons['other']") === true
+validation code: |
+  if absence_reasons['late'] and absence_reasons['make']:
+    validation_error("You cannot say that you were both late to court and did not make it to court.")
 ---
 id: order reasons
 question: |
   Why did the judge enter a default judgment?
 subquestion: |
   Select all that apply.
+
+  The form does not have much room to explain your absence. When you present your Motion to the judge, you will get to say more.
 fields:
   - Reasons: order_reasons
     datatype: checkboxes
@@ -538,7 +565,7 @@ fields:
   - Other reason: at_other_reason
     input type: area
     rows: 2
-    maxlength: 150
+    maxlength: 100
     js show if:
       val("order_reasons['other']") === true
 ---
@@ -584,7 +611,7 @@ id: modification case not permitted
 question: |
   Does the loan modification offer say your mortgage company will not go forward with the foreclosure if you accept the offer?
 subquestion: |
-  If a mortgage company says they will not go forward with the foreclosure, it means that litigation should be paused and no orders other than a **[continuance*]] should be ordered by the court
+  If a mortgage company says they will not go forward with the foreclosure, it means that litigation should be paused and no orders other than a **{continuance}** should be ordered by the court
 fields:
   - no label: forward_not_permitted  
     datatype: yesnomaybe
@@ -1095,7 +1122,7 @@ question: |
 subquestion: |  
   Your forms are ready. View and download your forms below. Click **Make changes** to fix any mistakes.
 
-  This program does not file your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  This program **does not file** your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
 
   ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
   
@@ -1105,7 +1132,7 @@ subquestion: |
 
   ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
 
-  **Note:** This program does not file your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  **Note:** This program **does not file** your forms with the court or deliver them to other parties in your case. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
   
   Thank you for using ILAO Easy Forms!
 under: |
@@ -1192,7 +1219,7 @@ attachment:
     - "before_judge_false": ${False if been_in_court else True}
     - "before_judge_true": ${been_in_court}
     - "judge_sign_date": ${judge_sign_date}
-    - "missed_hearing": ${False if present_at_hearing else False }
+    - "missed_hearing": ${False if present_at_hearing else True }
     - "at_hearing": ${present_at_hearing}
     - "late_to_court": ${ True if present_at_hearing == False and absence_reasons['late'] == True else False}
     - "late_reason": ${late_reason if present_at_hearing == False and absence_reasons['late'] == True else ""}
@@ -1254,7 +1281,7 @@ attachment:
         % elif delivery_parties[0].mail.address != "":
         ${delivery_parties[0].mail.address}
         % elif delivery_parties[0].mail.city != "":
-        ${delivery_parties[0].mail.state}
+        ${delivery_parties[0].mail.city}
         % else:
         ${state_name(delivery_parties[0].mail.state)}
         % endif
@@ -1274,7 +1301,7 @@ attachment:
         % elif delivery_parties[0].carrier.address != "":
         ${delivery_parties[0].carrier.address}
         % elif delivery_parties[0].carrier.city != "":
-        ${delivery_parties[0].carrier.state}
+        ${delivery_parties[0].carrier.city}
         % else:
         ${state_name(delivery_parties[0].carrier.state)}
         % endif
@@ -1323,7 +1350,7 @@ attachment:
         % elif delivery_parties[1].mail.address != "":
         ${delivery_parties[1].mail.address}
         % elif delivery_parties[1].mail.city != "":
-        ${delivery_parties[1].mail.state}
+        ${delivery_parties[1].mail.city}
         % else:
         ${state_name(delivery_parties[1].mail.state)}
         % endif
@@ -1343,7 +1370,7 @@ attachment:
         % elif delivery_parties[1].carrier.address != "":
         ${delivery_parties[1].carrier.address}
         % elif delivery_parties[1].carrier.city != "":
-        ${delivery_parties[1].carrier.state}
+        ${delivery_parties[1].carrier.city}
         % else:
         ${state_name(delivery_parties[1].carrier.state)}
         % endif
@@ -1392,7 +1419,7 @@ attachment:
         % elif delivery_parties[2].mail.address != "":
         ${delivery_parties[2].mail.address}
         % elif delivery_parties[2].mail.city != "":
-        ${delivery_parties[2].mail.state}
+        ${delivery_parties[2].mail.city}
         % else:
         ${state_name(delivery_parties[2].mail.state)}
         % endif
@@ -1412,7 +1439,7 @@ attachment:
         % elif delivery_parties[2].carrier.address != "":
         ${delivery_parties[2].carrier.address}
         % elif delivery_parties[2].carrier.city != "":
-        ${delivery_parties[2].carrier.state}
+        ${delivery_parties[2].carrier.city}
         % else:
         ${state_name(delivery_parties[2].carrier.state)}
         % endif
@@ -1452,7 +1479,7 @@ attachment:
   name: notice
   filename: notice
   skip undefined: True
-  editable: False
+  editable: True
   pdf template file: notice_vacate_foreclosure.pdf
   fields:
     - "case_number_1": ${ case_number }
@@ -1492,7 +1519,7 @@ attachment:
         % elif delivery_parties[0].mail.address != "":
         ${delivery_parties[0].mail.address}
         % elif delivery_parties[0].mail.city != "":
-        ${delivery_parties[0].mail.state}
+        ${delivery_parties[0].mail.city}
         % else:
         ${state_name(delivery_parties[0].mail.state)}
         % endif
@@ -1512,7 +1539,7 @@ attachment:
         % elif delivery_parties[0].carrier.address != "":
         ${delivery_parties[0].carrier.address}
         % elif delivery_parties[0].carrier.city != "":
-        ${delivery_parties[0].carrier.state}
+        ${delivery_parties[0].carrier.city}
         % else:
         ${state_name(delivery_parties[0].carrier.state)}
         % endif
@@ -1561,7 +1588,7 @@ attachment:
         % elif delivery_parties[1].mail.address != "":
         ${delivery_parties[1].mail.address}
         % elif delivery_parties[1].mail.city != "":
-        ${delivery_parties[1].mail.state}
+        ${delivery_parties[1].mail.city}
         % else:
         ${state_name(delivery_parties[1].mail.state)}
         % endif
@@ -1581,7 +1608,7 @@ attachment:
         % elif delivery_parties[1].carrier.address != "":
         ${delivery_parties[1].carrier.address}
         % elif delivery_parties[1].carrier.city != "":
-        ${delivery_parties[1].carrier.state}
+        ${delivery_parties[1].carrier.city}
         % else:
         ${state_name(delivery_parties[1].carrier.state)}
         % endif
@@ -1630,7 +1657,7 @@ attachment:
         % elif delivery_parties[2].mail.address != "":
         ${delivery_parties[2].mail.address}
         % elif delivery_parties[2].mail.city != "":
-        ${delivery_parties[2].mail.state}
+        ${delivery_parties[2].mail.city}
         % else:
         ${state_name(delivery_parties[2].mail.state)}
         % endif
@@ -1650,7 +1677,7 @@ attachment:
         % elif delivery_parties[2].carrier.address != "":
         ${delivery_parties[2].carrier.address}
         % elif delivery_parties[2].carrier.city != "":
-        ${delivery_parties[2].carrier.state}
+        ${delivery_parties[2].carrier.city}
         % else:
         ${state_name(delivery_parties[2].carrier.state)}
         % endif
@@ -1699,7 +1726,7 @@ attachment:
   name: additional_proof
   filename: additional_proof
   skip undefined: True
-  editable: False
+  editable: True
   pdf template file: vacate_foreclosure_proof_of_delivery.pdf
   fields:
     - "case_number": ${case_number}
@@ -1734,7 +1761,7 @@ attachment:
         % elif x.mail.address != "":
         Mail: ${x.mail.address}
         % elif x.mail.city != "":
-        Mail: ${x.mail.state}
+        Mail: ${x.mail.city}
         % else:
         Mail: ${state_name(x.mail.state)}
         % endif
@@ -1750,7 +1777,7 @@ attachment:
         % elif x.mail.address != "":
         ${x.mail.address}
         % elif x.mail.city != "":
-        ${x.mail.state}
+        ${x.mail.city}
         % else:
         ${state_name(x.mail.state)}
         % endif
@@ -1766,7 +1793,7 @@ attachment:
         % elif x.carrier.address != "":
         ${x.carrier.address}
         % elif x.carrier.city != "":
-        ${x.carrier.state}
+        ${x.carrier.city}
         % else:
         ${state_name(x.carrier.state)}
         % endif
@@ -1786,7 +1813,7 @@ attachment:
         % elif x.carrier.address != "":
         Carrier: ${x.carrier.address}
         % elif x.carrier.city != "":
-        Carrier: ${x.carrier.state}
+        Carrier: ${x.carrier.city}
         % else:
         Carrier: ${state_name(x.carrier.state)}
         % endif
@@ -1832,7 +1859,7 @@ attachment:
         % elif x.second_person.mail.address != "":
         Mail: ${x.second_person.mail.address}
         % elif x.second_person.mail.city != "":
-        Mail: ${x.second_person.mail.state}
+        Mail: ${x.second_person.mail.city}
         % else:
         Mail: ${state_name(x.second_person.mail.state)}
         % endif
@@ -1848,7 +1875,7 @@ attachment:
         % elif x.second_person.mail.address != "":
         ${x.second_person.mail.address}
         % elif x.second_person.mail.city != "":
-        ${x.second_person.mail.state}
+        ${x.second_person.mail.city}
         % else:
         ${state_name(x.second_person.mail.state)}
         % endif
@@ -1864,7 +1891,7 @@ attachment:
         % elif x.second_person.carrier.address != "":
         ${x.second_person.carrier.address}
         % elif x.second_person.carrier.city != "":
-        ${x.second_person.carrier.state}
+        ${x.second_person.carrier.city}
         % else:
         ${state_name(x.second_person.carrier.state)}
         % endif
@@ -1884,7 +1911,7 @@ attachment:
         % elif x.second_person.carrier.address != "":
         Carrier: ${x.second_person.carrier.address}
         % elif x.second_person.carrier.city != "":
-        Carrier: ${x.second_person.carrier.state}
+        Carrier: ${x.second_person.carrier.city}
         % else:
         Carrier: ${state_name(x.second_person.carrier.state)}
         % endif
@@ -2038,7 +2065,7 @@ review:
         ${judge_sign_date}
   - Edit: users.revisit
     button: |
-      **Your party: (Edit to change name, address, and other info)**
+      **Defendants: (Edit to change name, address, and other info)**
       
       % for my_var in users:
         * ${ my_var.name.full(middle="full") }
@@ -2070,7 +2097,7 @@ id: users review screen
 continue button field: users.revisit
 section: Case info
 question: |
-  Edit your party
+  Edit defendants
 subquestion: |
   ${ users.table }
 
@@ -2359,7 +2386,7 @@ review:
       % endif
   - Edit: users.revisit
     button: |
-      **Your party: (Edit to change name, address, and other info)**
+      **Defendants: (Edit to change name, address, and other info)**
       
       % for my_var in users:
         * ${ my_var.name.full(middle="full") }
@@ -2375,7 +2402,7 @@ subquestion: |
 review:
   - Edit: users.revisit
     button: |
-      **Your party: (Edit to change name, address, and other info)**
+      **Defendants: (Edit to change name, address, and other info)**
       
       % for my_var in users:
         * ${ my_var.name.full(middle="full") }
@@ -2444,7 +2471,7 @@ review:
         ${judge_sign_date}
   - Edit: users.revisit
     button: |
-      **Your party: (Edit to change name, address, and other info)**
+      **Defendants: (Edit to change name, address, and other info)**
       
       % for my_var in users:
         * ${ my_var.name.full(middle="full") }
