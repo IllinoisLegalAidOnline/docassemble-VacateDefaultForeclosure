@@ -58,8 +58,9 @@ code: |
   how_to_use
   default_info
   set_progress(5)
-  whats_next
+  
   accept_terms
+  whats_next
   if not in_foreclosure:
     no_foreclosure_kickout
   if not entered_against_user:
@@ -74,6 +75,8 @@ code: |
 
   nav.set_section('section_case_info')
   if today().minus(days=30) > judge_sign_date:
+    if scheduled_sale:
+      sale_kickout
     over_thirty_days
   users.gather()
   other_parties.gather()
@@ -382,6 +385,33 @@ fields:
       states_list()
     default: IL      
   - ZIP code: users[0].address.zip
+---
+id: scheduled sale
+question: |
+  Has a sale of the foreclosed property been scheduled?
+subquestion: |
+  If the sale has alrady happened, you should click **Yes**.
+  
+  If the Plaintiff has filed a *Motion to Confirm the Foreclosure Sale*, you should click **Yes**.
+fields:
+  - no label: scheduled_sale
+    datatype: yesnoradio
+---
+id: sale kickout
+event: sale_kickout
+question: |
+  Sorry
+subquestion: |
+  You can only use this program if the foreclosed property has not been scheduled to be sold.
+
+  If the property has not been sold yet, you can use ILAO's [**Delay a foreclosure sale Easy Form**](https://www.illinoislegalaid.org/legal-information/delay-foreclosure-sale) to make a *Motion to Stay Foreclosure Sale*.
+
+  If the property has already been sold, you may want help from a lawyer. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  If you made a mistake, you can click the **Back** button or **Restart** the interview.
+buttons:
+  - Exit: exit
+  - Restart: restart
 ---
 id: over thirty days
 continue button field: over_thirty_days
