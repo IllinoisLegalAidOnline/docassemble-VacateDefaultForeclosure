@@ -1065,7 +1065,7 @@ question: |
 subquestion: |
   **Don't forget!** Make sure you review and complete the Proof of Delivery section of your forms. 
   
-  [FILE proof_of_delivery_snip_2024.png, 100%, Proof of Delivery section of forms]
+  [FILE proof_of_delivery_snip_2025.png, 100%, Proof of Delivery section of forms]
 
   **Instructions when delivering your forms by hand:**
 
@@ -1187,7 +1187,9 @@ content: |
 reconsider: True
 code: |
   instructions.enabled = True
-  motion.enabled = True
+  motion_part_1.enabled = True
+  motion_part_2.enabled = True
+  motion_part_3.enabled = True
   motion_bundle.enabled = True
   notice.enabled = True
   notice_bundle.enabled = True
@@ -1199,12 +1201,15 @@ objects:
 ---
 objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
-  - motion: ALDocument.using(title="Motion to Vacate Default Judgment of Foreclosure", filename="motion.pdf", has_addendum=False)
+  - motion_part_1: ALDocument.using(title="Motion to Vacate Default Judgment of Foreclosure", filename="motion_part_1.pdf", has_addendum=False)
+  - motion_part_2: ALDocument.using(title="Motion to Vacate Default Judgment of Foreclosure", filename="motion_part_2.pdf", has_addendum=False)
+  - motion_part_3: ALDocument.using(title="Motion to Vacate Default Judgment of Foreclosure", filename="motion_part_3.pdf", has_addendum=False)
   - notice: ALDocument.using(title="Notice of Motion to Vacate Default Judgment of Foreclosure", filename="notice.pdf", has_addendum=False)
   - order: ALDocument.using(title="Order to Vacate Default Judgment of Foreclosure", filename="order.pdf", has_addendum=False)
+
 ---
 objects:
-  - motion_bundle: ALDocumentBundle.using(elements=[motion, additional_signatures_bundle, additional_proof_bundle], filename="vacate_default_foreclosure_judgment.pdf", title="Motion to Vacate Default Judgment of Foreclosure")
+  - motion_bundle: ALDocumentBundle.using(elements=[motion_part_1, motion_part_2, motion_part_3, additional_signatures_bundle, additional_proof_bundle], filename="vacate_default_foreclosure_judgment.pdf", title="Motion to Vacate Default Judgment of Foreclosure")
   - notice_bundle: ALDocumentBundle.using(elements=[notice, additional_proof_bundle], filename="notice_of_vacate_default_foreclosure_judgment.pdf", title="Notice of Motion to Vacate Default Judgment of Foreclosure")
 ---
 objects:
@@ -1222,18 +1227,15 @@ attachment:
     - "fake": ${ "" }
 ---
 attachment:
-  variable name: motion[i]
-  name: motion
-  filename: motion
+  variable name: motion_part_1[i]
+  name: motion_part_1
+  filename: motion_part_1
   skip undefined: True
   editable: False
-  pdf template file: motion_vacate_foreclosure.pdf
+  pdf template file: motion_vacate_foreclosure_Part1.pdf
   fields:
     - "case_number_1": ${ case_number }
     - "case_number_2": ${ case_number }
-    - "case_number_3": ${ case_number }
-    - "case_number_4": ${ case_number }
-    - "case_number_5": ${ case_number }
     - "county": ${trial_court.address.county.upper()}
     - "plaintiffs": ${other_parties.full_names()}
     - "all_defendants": ${users.full_names()}
@@ -1270,6 +1272,17 @@ attachment:
     - "defendant_name_2": ${signing_users[1].name.full(middle='full')}
     - "defendant_signature_2": ${""}
     - "defendant_street_2": ${signing_users[1].address.line_one(bare=True)}
+---
+attachment:
+  variable name: motion_part_2[i]
+  name: motion_part_2
+  filename: motion_part_2
+  skip undefined: True
+  editable: True
+  pdf template file: motion_vacate_foreclosure_Part2.pdf
+  fields:
+    - "case_number_3": ${ case_number }
+    - "case_number_4": ${ case_number }
     - "defendant_csz_2": ${signing_users[1].address.line_two()}
     - "defendant_phone_2": ${phone_number_formatted(signing_users[1].phone_number)}
     - "defendant_name_3": ${signing_users[2].name.full(middle='full')}
@@ -1497,7 +1510,17 @@ attachment:
     - "prison_delivery_3": ${delivery_parties[2].jail_delivery if delivery_parties[2].knows_delivery_method else False}
     - "delivery_am_3": ${True if format_time(delivery_parties[2].delivery_time, format='a') == "AM" and delivery_parties[2].knows_delivery_method else False}
     - "delivery_pm_3": ${True if format_time(delivery_parties[2].delivery_time, format='a') == "PM" and delivery_parties[2].knows_delivery_method else False}
-    - "additional_delivery": ${True if delivery_parties.number_gathered() > 3 else False}
+    - "additional_delivery": ${True if delivery_parties.number_gathered() > 3 else False}  
+---
+attachment:
+  variable name: motion_part_3[i]
+  name: motion_part_3
+  filename: motion_part_3
+  skip undefined: True
+  editable: False
+  pdf template file: motion_vacate_foreclosure_Part3.pdf
+  fields:
+    - "case_number_5": ${ case_number } 
     - "user_street": ${users[0].address.line_one(bare=True)}
     - "user_signature": ${users[0].name.full(middle='full') if e_signature else ""}
     - "user_name": ${users[0].name.full(middle='full')}
