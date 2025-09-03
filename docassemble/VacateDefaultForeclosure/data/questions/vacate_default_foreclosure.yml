@@ -639,9 +639,9 @@ fields:
 ---
 id: modification case not permitted
 question: |
-  Does the loan modification offer say your mortgage company will not go forward with the foreclosure if you accept the offer?
+  As part of the loan modification, did you and the lender agree that the lender would not go forward with this case right now?
 subquestion: |
-  If a mortgage company says they will not go forward with the foreclosure, it means that litigation should be paused and no orders other than a **{continuance}** should be ordered by the court
+  If a mortgage company says they will not go forward with the foreclosure and you agree, it means that litigation should be paused and no orders other than a **{continuance}** should be ordered by the court.
 fields:
   - no label: forward_not_permitted  
     datatype: yesnomaybe
@@ -691,7 +691,7 @@ id: user agree
 question: |
   Does ${users[i].name_full()} want to sign the motion with you?
 subquestion: | 
-  You should only click **Yes** if ${users[i].name_full()} fully agrees with you and the reasons you want to delay the foreclosure sale.
+  You should only click **Yes** if ${users[i].name_full()} fully agrees with you and has the same reasons you have to want to delay the foreclosure sale.
 
   If ${users[i].name_full()} has any other responses or different reasons they want to delay the foreclosure sale, click **No**.
 fields:
@@ -819,7 +819,7 @@ subquestion: |
 
   You must send a copy of your forms to each of them.
 
-  If someone in the case has a lawyer, you only need to send it to their lawyer.
+  If any of these parties have a lawyer, you should send the forms to the party's lawyer.
 ---
 generic object: ALIndividual
 id: has lawyer
@@ -1069,7 +1069,7 @@ subquestion: |
 
   **Instructions when delivering your forms by hand:**
 
-  * If a party in your case does not have a lawyer, you can hand-deliver the forms to them or to a family member who is 13 or older at their home.
+  * If a party in your case does not have a lawyer, you can hand-deliver the forms to them. You can also deliver the forms to a family member who is 13 or older at their home.
   * If they do have a lawyer, you can hand-deliver the forms to the lawyer or to the lawyer's office.
 ---
 id: other user phone
@@ -1272,6 +1272,18 @@ attachment:
     - "defendant_name_2": ${signing_users[1].name_full()}
     - "defendant_signature_2": ${""}
     - "defendant_street_2": ${signing_users[1].address.line_one(bare=True)}
+    - "mod_pending_true": ${mod_pending}
+    - "mod_pending_false": ${True if mod_pending == False else False}
+    - "mod_pending_idk": ${True if mod_pending is None else False}
+    - "hamp_idk": ${True if hamp_loan is None else False}
+    - "hamp_false": ${True if hamp_loan == False else False}
+    - "hamp_true": ${hamp_loan}
+    - "not_permitted_true": ${True if short_sale and mod_pending else False}
+    - "not_permitted_false": ${ True if short_sale == False and mod_pending else False}
+    - "not_permitted_idk": ${True if short_sale is None and mod_pending else False}
+    - "sale_contract_idk": ${True if short_sale is None else False}
+    - "sale_contract_false": ${True if short_sale == False else False}
+    - "sale_contract_true": ${short_sale}
 ---
 attachment:
   variable name: motion_part_2[i]
@@ -1289,19 +1301,7 @@ attachment:
     - "defendant_signature_3": ${""}
     - "defendant_street_3": ${signing_users[2].address.line_one(bare=True)}
     - "defendant_csz_3": ${signing_users[2].address.line_two()}
-    - "defendant_phone_3": ${phone_number_formatted(signing_users[2].phone_number)}
-    - "mod_pending_true": ${mod_pending}
-    - "mod_pending_false": ${True if mod_pending == False else False}
-    - "mod_pending_idk": ${True if mod_pending is None else False}
-    - "hamp_idk": ${True if hamp_loan is None else False}
-    - "hamp_false": ${True if hamp_loan == False else False}
-    - "hamp_true": ${hamp_loan}
-    - "not_permitted_true": ${True if short_sale and mod_pending else False}
-    - "not_permitted_false": ${ True if short_sale == False and mod_pending else False}
-    - "not_permitted_idk": ${True if short_sale is None and mod_pending else False}
-    - "sale_contract_idk": ${True if short_sale is None else False}
-    - "sale_contract_false": ${True if short_sale == False else False}
-    - "sale_contract_true": ${short_sale}
+    - "defendant_phone_3": ${phone_number_formatted(signing_users[2].phone_number)}   
     - "additional_signatures": ${True if signing_users.number_gathered() > 3 else False}
     - "delivery_party_name_1": |
         % if delivery_parties[0].is_represented:
