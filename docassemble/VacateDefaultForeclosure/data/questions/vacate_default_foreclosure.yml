@@ -639,9 +639,11 @@ fields:
 ---
 id: modification case not permitted
 question: |
-  As part of the loan modification, did you and the lender agree that the lender would not go forward with this case right now?
+  Did the loan modification include an agreement to pause the foreclosure?"
 subquestion: |
   If a mortgage company says they will not go forward with the foreclosure and you agree, it means that litigation should be paused and no orders other than a **{continuance}** should be ordered by the court.
+
+  If you and the lender agreed that the lender would not go forward with this case, and this agreement was part of the loan modification, click **Yes**.
 fields:
   - no label: forward_not_permitted  
     datatype: yesnomaybe
@@ -1069,7 +1071,7 @@ subquestion: |
 
   **Instructions when delivering your forms by hand:**
 
-  * If a party in your case does not have a lawyer, you can hand-deliver the forms to them. You can also deliver the forms to a family member who is 13 or older at their home.
+  * If a party in your case does not have a lawyer, you can hand-deliver the forms to them or to a family member who is 13 or older at their home.
   * If they do have a lawyer, you can hand-deliver the forms to the lawyer or to the lawyer's office.
 ---
 id: other user phone
