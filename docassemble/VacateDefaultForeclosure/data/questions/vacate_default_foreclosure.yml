@@ -639,7 +639,7 @@ fields:
 ---
 id: modification case not permitted
 question: |
-  Did the loan modification include an agreement to pause the foreclosure?"
+  Did the loan modification include an agreement to pause the foreclosure?
 subquestion: |
   If a mortgage company says they will not go forward with the foreclosure and you agree, it means that litigation should be paused and no orders other than a **{continuance}** should be ordered by the court.
 
