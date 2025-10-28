@@ -429,7 +429,7 @@ question: |
     Is anyone else on your side of the foreclosure case?
 subquestion: |
   % if len(users.elements) > 1:  
-  So far you have told us about ${users.full_names()}.
+  So far you have told us about ${fix_punctuation(users.full_names())}.
   % else:
   If there are other defendants besides you, click **Yes**.
   % endif
@@ -462,7 +462,7 @@ question: |
   Are there any other plaintiffs in this case?
 subquestion: |
   % if len(other_parties.elements) >= 1:  
-  So far you have told us about ${other_parties.full_names()}.
+  So far you have told us about ${fix_punctuation(other_parties.full_names())}
   % endif
 fields:
   - no label: other_parties.there_is_another
@@ -475,7 +475,7 @@ question: |
 subquestion: |
   ${ collapse_template(county_lookup_help) }  
 fields:
-  - no label: trial_court_index
+  - County: trial_court_index
     code: |
       court_county_lookup()
 ---
@@ -817,7 +817,7 @@ continue button field: delivery_intro
 question: |
   Send your forms to all other parties
 subquestion: |
-  You will need to deliver a copy of your forms to these other parties: ${delivery_parties.full_names()}.
+  You will need to deliver a copy of your forms to these other parties: ${fix_punctuation(delivery_parties.full_names())}
 
   You must send a copy of your forms to each of them.
 
@@ -1116,7 +1116,7 @@ id: user e-signature
 question: |
   Do you want to add your e-signature to your forms?
 subquestion: |
-  This program can put “**/s/ ${users[0].name_full()}**” where you would sign your name. The court will accept this as your signature.
+  This program can put "**/s/ ${users[0].name_full()}**"" where you would sign your name. The court will accept this as your signature.
 
   If you do not add your **{e-signature}**, you must sign your paper forms before you file and deliver them.
 
@@ -1127,7 +1127,7 @@ subquestion: |
       <li>Everything on the forms is true and correct, and</li>
       <li>You understand that making a false statement on the form is perjury, which can result in criminal penalties.</li>
     </ul></p>
-  <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
+  <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Illinois Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
   </div>
 fields:
   - "Add e-signature?": e_signature
