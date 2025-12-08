@@ -1,8 +1,3 @@
-license = "MIT"
-license-files = [
-    "LICENSE",
-]
-
 [build-system]
 requires = [
     "setuptools==80.9.0",
@@ -11,13 +6,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "docassemble.VacateDefaultForeclosure"
-version = "0.0.10"
+version = "0.0.11"
 description = "A docassemble extension."
 readme = "README.md"
 authors = [
     { name = "Vivian McNaughton", email = "vmcnaughton@illinoislegalaid.org" },
 ]
 dependencies = []
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
 
 [project.urls]
 Homepage = "https://docassemble.org"

@@ -249,7 +249,7 @@ template: what_fees
 subject: |
   **Will I need to pay any court fees?**
 content: |
-  If you have already paid to file an appearance in the foreclosure case, you do not need to pay additional court costs to file this motion. You also do not need to pay if you have alrady gotten a fee waiver.
+  If you have already paid to file an appearance in the foreclosure case, you do not need to pay additional court costs to file this motion. You also do not need to pay if you have already gotten a fee waiver.
 
   If you still need to file an Appearance with the court, you can use ILAO's [**Appearance Easy Form**](https://www.illinoislegalaid.org/legal-information/appearance).
 
@@ -390,7 +390,7 @@ id: scheduled sale
 question: |
   Has a sale of the foreclosed property been scheduled?
 subquestion: |
-  If the sale has alrady happened, you should click **Yes**.
+  If the sale has already happened, you should click **Yes**.
   
   If the Plaintiff has filed a *Motion to Confirm the Foreclosure Sale*, you should click **Yes**.
 fields:
@@ -429,7 +429,7 @@ question: |
     Is anyone else on your side of the foreclosure case?
 subquestion: |
   % if len(users.elements) > 1:  
-  So far you have told us about ${fix_punctuation(users.full_names())}.
+  So far you have told us about ${fix_punctuation(users.full_names())}
   % else:
   If there are other defendants besides you, click **Yes**.
   % endif
@@ -1280,9 +1280,9 @@ attachment:
     - "hamp_idk": ${True if hamp_loan is None else False}
     - "hamp_false": ${True if hamp_loan == False else False}
     - "hamp_true": ${hamp_loan}
-    - "not_permitted_true": ${True if short_sale and mod_pending else False}
-    - "not_permitted_false": ${ True if short_sale == False and mod_pending else False}
-    - "not_permitted_idk": ${True if short_sale is None and mod_pending else False}
+    - "not_permitted_true": ${True if forward_not_permitted and mod_pending else False}
+    - "not_permitted_false": ${ True if  mod_pending and forward_not_permitted == False else False}
+    - "not_permitted_idk": ${True if forward_not_permitted is None and mod_pending else False}
     - "sale_contract_idk": ${True if short_sale is None else False}
     - "sale_contract_false": ${True if short_sale == False else False}
     - "sale_contract_true": ${short_sale}
