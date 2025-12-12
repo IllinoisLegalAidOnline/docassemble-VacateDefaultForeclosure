@@ -1534,7 +1534,7 @@ attachment:
   name: notice
   filename: notice
   skip undefined: True
-  editable: True
+  editable: False
   pdf template file: notice_vacate_foreclosure.pdf
   fields:
     - "case_number_1": ${ case_number }
@@ -1781,7 +1781,7 @@ attachment:
   name: additional_proof
   filename: additional_proof
   skip undefined: True
-  editable: True
+  editable: False
   pdf template file: vacate_foreclosure_proof_of_delivery.pdf
   fields:
     - "case_number": ${case_number}
